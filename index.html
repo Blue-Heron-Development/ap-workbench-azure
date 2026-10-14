@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AP Workbench — Blue Heron</title>
+<script src="config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --paper:#EEF1F3; --surface:#FFFFFF; --sunk:#F6F8F9; --ink:#17212B; --muted:#5B6874; --faint:#8995A0;
+  --line:#D8DEE3; --line-soft:#E7EBEE;
+  --heron:#355774; --heron-soft:#E3EBF2; --heron-ink:#FFFFFF;
+  --funded:#2C7A57; --funded-soft:#E2F1E9;
+  --a0:#7FA7C6; --a1:#A9B86C; --a2:#D9A441; --a3:#D27B3E; --a4:#B5483A;
+  --warn:#9A5B0C; --danger:#A33B2E;
+  --sel:#FFF6D6;
+  --shadow:0 1px 0 rgba(23,33,43,.04),0 8px 24px -12px rgba(23,33,43,.18);
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1418; --surface:#161D23; --sunk:#12181D; --ink:#E4EAEF; --muted:#98A6B2; --faint:#6E7C88;
+    --line:#26313A; --line-soft:#1E272E;
+    --heron:#8DB2D2; --heron-soft:#1E2C38; --heron-ink:#0F1418;
+    --funded:#5DBA8C; --funded-soft:#16291F;
+    --a0:#6F9BBE; --a1:#9CAD5E; --a2:#D9A441; --a3:#E08A4C; --a4:#E06B5B;
+    --warn:#E0A84A; --danger:#E57A6A; --sel:#2E2A17;
+    --shadow:0 1px 0 rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1418; --surface:#161D23; --sunk:#12181D; --ink:#E4EAEF; --muted:#98A6B2; --faint:#6E7C88;
+  --line:#26313A; --line-soft:#1E272E;
+  --heron:#8DB2D2; --heron-soft:#1E2C38; --heron-ink:#0F1418;
+  --funded:#5DBA8C; --funded-soft:#16291F;
+  --a0:#6F9BBE; --a1:#9CAD5E; --a2:#D9A441; --a3:#E08A4C; --a4:#E06B5B;
+  --warn:#E0A84A; --danger:#E57A6A; --sel:#2E2A17;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--paper);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.cond{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif}
+:focus-visible{outline:2px solid var(--heron);outline-offset:2px}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
+.brand svg{width:30px;height:30px;color:var(--heron)}
+.brand b{display:block;font:600 17px/1.1 "IBM Plex Sans Condensed",sans-serif;letter-spacing:.01em}
+.brand span{display:block;font-size:12px;color:var(--muted)}
+.src{font-size:12.5px;color:var(--muted);flex:1;min-width:180px}
+.src strong{color:var(--ink);font-weight:500}
+.asof{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.asof input{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:4px 6px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--heron);border-color:var(--heron);color:var(--heron-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.good{background:var(--funded);border-color:var(--funded);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--sunk)}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.save{font-size:12px;color:var(--muted);min-width:90px;text-align:right}
+.save.err{color:var(--danger)}
+.who{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.who button{border:0;background:none;color:var(--heron);cursor:pointer;font-size:12px;padding:0}
+.signin{max-width:460px;margin:12vh auto;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:32px 28px;box-shadow:var(--shadow)}
+.signin h1{margin-bottom:8px}
+.setup{max-width:760px;margin:6vh auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px 28px}
+.setup pre{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;font-size:12px;white-space:pre-wrap}
+
+/* shell */
+.shell{flex:1;display:flex;min-height:0}
+nav{width:268px;flex:none;background:var(--surface);border-right:1px solid var(--line);overflow-y:auto;padding:10px 10px 24px}
+.navh{font-size:11.5px;color:var(--faint);margin:16px 8px 6px;font-weight:500}
+.navi{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:8px;padding:8px 9px;cursor:pointer;margin-bottom:1px}
+.navi:hover{background:var(--sunk)}
+.navi[aria-current="true"]{background:var(--heron-soft)}
+.navi .row1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.navi .nm{font-weight:500}
+.navi .amt{font-size:13px}
+.navi .sub{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:1px}
+.ribbon{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--line-soft);margin-top:6px}
+.ribbon i{display:block;height:100%}
+.ribbon i:nth-child(1){background:var(--a0)}.ribbon i:nth-child(2){background:var(--a1)}.ribbon i:nth-child(3){background:var(--a2)}.ribbon i:nth-child(4){background:var(--a3)}.ribbon i:nth-child(5){background:var(--a4)}
+main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.pane{flex:1;overflow:auto;padding:22px 26px 40px}
+h1{font:600 26px/1.15 "IBM Plex Sans Condensed",sans-serif;margin:0 0 4px;letter-spacing:-.005em}
+h2{font:600 18px/1.2 "IBM Plex Sans Condensed",sans-serif;margin:28px 0 10px}
+.lede{color:var(--muted);margin:0 0 18px;max-width:72ch}
+
+/* summary */
+.hero{display:grid;grid-template-columns:minmax(220px,auto) 1fr;gap:28px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;box-shadow:var(--shadow)}
+.hero .big{font:600 40px/1 "IBM Plex Sans Condensed",sans-serif;letter-spacing:-.01em}
+.hero .cap{color:var(--muted);font-size:13px;margin-top:6px}
+.bigribbon{display:flex;height:34px;border-radius:6px;overflow:hidden;background:var(--line-soft)}
+.bigribbon div{display:flex;align-items:center;padding:0 8px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;min-width:0}
+.bigribbon div:nth-child(1){background:var(--a0)}.bigribbon div:nth-child(2){background:var(--a1);color:#1b2410}.bigribbon div:nth-child(3){background:var(--a2);color:#2a1c00}.bigribbon div:nth-child(4){background:var(--a3)}.bigribbon div:nth-child(5){background:var(--a4)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+table.sum{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13.5px}
+.tablewrap{overflow-x:auto;border-radius:10px}
+table.sum th{font-weight:500;color:var(--muted);text-align:right;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--sunk);white-space:nowrap;font-size:12.5px}
+table.sum th:first-child{text-align:left}
+table.sum td{padding:8px 12px;border-bottom:1px solid var(--line-soft)}
+table.sum td:first-child{white-space:nowrap}
+table.sum tr.click{cursor:pointer}
+table.sum tr.click:hover td{background:var(--sunk)}
+table.sum tr.child td:first-child{padding-left:30px;color:var(--muted)}
+table.sum tr.tot td{font-weight:600;border-top:2px solid var(--line);border-bottom:0}
+table.sum td.z{color:var(--faint)}
+.pill{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:20px;background:var(--sunk);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--funded-soft);border-color:transparent;color:var(--funded)}
+.pill.man{background:var(--heron-soft);border-color:transparent;color:var(--heron)}
+.note{font-size:12.5px;color:var(--muted)}
+
+/* grid */
+.gridhead{padding:16px 22px 10px;background:var(--paper)}
+.gridhead .t{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.search{flex:1;min-width:200px;max-width:380px;border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:6px 10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:5px 10px;cursor:pointer;font-size:12.5px;border-right:1px solid var(--line-soft)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--heron);color:var(--heron-ink)}
+select.s{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:5px 8px;font-size:12.5px}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);cursor:pointer}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.stats b{color:var(--ink);font-weight:600;margin-left:4px}
+.stats .k::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;background:var(--c)}
+.bulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;margin-top:10px;border-radius:8px;background:var(--sel);border:1px solid var(--line)}
+.bulk .cnt{font-weight:600;margin-right:6px}
+.gridwrap{flex:1;min-height:0;margin:0 22px 16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:auto;position:relative}
+.gcols{display:grid;grid-template-columns:34px minmax(160px,1.5fr) 122px 72px 120px 74px 48px 100px 130px minmax(120px,.9fr) minmax(150px,1.2fr) 84px;min-width:1180px}
+.ghdr{position:sticky;top:0;z-index:3;background:var(--sunk);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:500}
+.ghdr>div{padding:8px 8px;white-space:nowrap;cursor:default;user-select:none}
+.ghdr>div.sortable{cursor:pointer}
+.ghdr>div.sortable:hover{color:var(--ink)}
+.ghdr>div.on{color:var(--ink)}
+.vbody{position:relative}
+.vrow{position:absolute;left:0;right:0;height:32px;border-bottom:1px solid var(--line-soft);font-size:13px;align-items:center}
+.vrow>div{padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.vrow:hover{background:var(--sunk)}
+.vrow.sel{background:var(--sel)}
+.vrow.paid{box-shadow:inset 3px 0 0 var(--funded)}
+.vrow.grp{background:var(--heron-soft);font-weight:600;cursor:pointer}
+.vrow.grp:hover{filter:brightness(.98)}
+.vrow input[type=checkbox]{margin:0;width:15px;height:15px;accent-color:var(--heron)}
+.age{font-size:12px;font-weight:600}
+.age.b0{color:var(--a0)}.age.b1{color:var(--a1)}.age.b2{color:var(--a2)}.age.b3{color:var(--a3)}.age.b4{color:var(--a4)}
+.why{font-size:12px;color:var(--muted)}
+.why.man{color:var(--heron);font-weight:500}
+.cell-sel{border:1px solid transparent;background:transparent;border-radius:5px;padding:2px 4px;font-size:12.5px;width:100%;cursor:pointer}
+.cell-sel:hover{border-color:var(--line);background:var(--surface)}
+.cm{cursor:text;color:var(--muted);font-size:12.5px;display:block;min-height:20px;border-radius:4px;padding:2px 4px}
+.cm:hover{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+.cm.empty::before{content:"Add note";color:var(--faint);opacity:0}
+.vrow:hover .cm.empty::before{opacity:1}
+.cm-in{width:100%;border:1px solid var(--heron);border-radius:4px;padding:2px 5px;font-size:12.5px;background:var(--surface)}
+.empty-state{padding:60px 20px;text-align:center;color:var(--muted)}
+.caret{display:inline-block;width:12px;transition:transform .15s}
+.caret.open{transform:rotate(90deg)}
+
+/* rules */
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;display:grid;grid-template-columns:32px 1fr auto;gap:12px}
+.rule.off{opacity:.55}
+.rule .ord{font:600 15px/1 "IBM Plex Sans Condensed",sans-serif;color:var(--faint);padding-top:8px;text-align:center}
+.rule .top1{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rule input.name{flex:1;min-width:220px;border:1px solid transparent;background:transparent;font-weight:600;padding:4px 6px;border-radius:6px}
+.rule input.name:hover,.rule input.name:focus{border-color:var(--line);background:var(--sunk)}
+.conds{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.cond-row{display:grid;grid-template-columns:150px 120px 1fr 28px;gap:6px;align-items:start}
+.cond-row textarea{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:4px 8px;font-size:12.5px;min-height:30px;resize:vertical;font-family:"IBM Plex Sans Condensed",sans-serif}
+.and{font-size:11.5px;color:var(--faint);margin-left:2px}
+.rule .side{display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:120px}
+.hit{font-size:12px;color:var(--muted);text-align:right}
+.hit b{color:var(--ink);font-weight:600}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:6px;width:28px;height:28px;cursor:pointer;color:var(--muted);display:inline-grid;place-items:center;padding:0}
+.iconbtn:hover{color:var(--ink);border-color:var(--faint)}
+.stickybar{position:sticky;top:-22px;z-index:4;background:var(--paper);padding:12px 0;margin:-12px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dirty{color:var(--warn);font-size:12.5px;font-weight:500}
+
+/* pay runs */
+.runs{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start}
+.runlist{display:flex;flex-direction:column;gap:6px}
+.runcard{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:10px 12px;cursor:pointer;text-align:left}
+.runcard[aria-current="true"]{border-color:var(--heron);box-shadow:0 0 0 1px var(--heron)}
+.runcard.released{background:var(--funded-soft);border-color:transparent}
+.runcard .r1{display:flex;justify-content:space-between;font-weight:600}
+.runcard .r2{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:2px}
+.rundetail{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.rundetail.released{box-shadow:inset 4px 0 0 var(--funded)}
+.rundetail input.rn{font:600 20px/1.2 "IBM Plex Sans Condensed",sans-serif;border:1px solid transparent;background:transparent;border-radius:6px;padding:2px 6px;margin-left:-6px;width:100%;max-width:420px}
+.rundetail input.rn:hover,.rundetail input.rn:focus{border-color:var(--line)}
+table.lines{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+table.lines th{font-weight:500;color:var(--muted);font-size:12px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+table.lines td{padding:6px 8px;border-bottom:1px solid var(--line-soft)}
+table.lines tr.vh td{background:var(--sunk);font-weight:600}
+table.lines tr.gone td{color:var(--faint)}
+
+/* dialog / toast */
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:22px 24px;max-width:520px;width:calc(100% - 32px);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(15,20,24,.45)}
+dialog h3{margin:0 0 8px;font:600 19px/1.2 "IBM Plex Sans Condensed",sans-serif}
+dialog .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+dialog ul{padding-left:18px;margin:8px 0;color:var(--muted)}
+dialog label.f{display:block;font-size:12.5px;color:var(--muted);margin-top:10px}
+dialog label.f input{display:block;width:100%;margin-top:4px;border:1px solid var(--line);background:var(--sunk);border-radius:7px;padding:7px 9px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:50;max-width:90vw}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.loading{display:grid;place-items:center;height:100%;color:var(--muted)}
+
+@media (max-width:860px){
+  body{overflow:auto;height:auto}
+  .shell{flex-direction:column}
+  nav{width:auto;border-right:0;border-bottom:1px solid var(--line);display:flex;gap:4px;overflow-x:auto;padding:8px}
+  .navh{display:none}
+  .navi{min-width:150px;width:auto;flex:none}
+  main{overflow:visible}
+  .gridwrap{height:70vh;flex:none;margin:0 12px 16px}
+  .gridhead{padding:14px 12px 10px}
+  .pane{padding:18px 14px 32px;overflow:visible}
+  .hero{grid-template-columns:1fr}
+  .runs{grid-template-columns:1fr}
+  .cond-row{grid-template-columns:1fr 1fr;}
+  .cond-row textarea{grid-column:1/-1}
+  .rule{grid-template-columns:1fr}
+  .rule .ord{display:none}
+  .rule .side{align-items:flex-start;flex-direction:row;flex-wrap:wrap}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M8 27c3-1 5-4 6-8 1-5 0-9 3-12 2-2 5-2 6 0l4 1-4 1c-1 3-3 4-5 6-2 3-1 8-3 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 27l-2 3M16 27l1 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <div><b>AP Workbench</b><span>Blue Heron accounts payable</span></div>
+  </div>
+  <div class="src" id="src">Loading…</div>
+  <label class="asof">Aging as of <input type="date" id="asOf"></label>
+  <button class="btn" id="btnRefresh" title="Reload lines, decisions and pay runs from Fabric">Refresh</button>
+  <button class="btn primary" id="btnExport">Export workbook</button>
+  <span class="save" id="saveState"></span>
+  <span class="who" id="who"></span>
+</header>
+<div class="shell">
+  <nav id="nav" aria-label="Workbook tabs"></nav>
+  <main id="main"><div class="loading">Loading payables…</div></main>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ---------- constants ---------- */
+const BUCKETS = [
+  {id:'AGING',  name:'Aging',            note:'Not drawn or funded',            sheet:'AGING'},
+  {id:'ISSUES', name:'Aging issues',     note:'Voucher and legal jobs',         sheet:'AGING-ISSUES'},
+  {id:'DF',     name:'Drawn & funded',   note:'Funded by draw, ready to pay',   sheet:'D&F'},
+  {id:'SGA',    name:'G&A / COM',        note:'Indirects, paid net 30',         sheet:'SGA-COM'},
+  {id:'DEV',    name:'Land development', note:'Mostly unfunded',                sheet:'DEV'},
+  {id:'CANYONS',name:'Canyons',          note:'Funded per invoice',             sheet:'CANYONS'},
+  {id:'SL',     name:'Shoreline',        note:'Funded by JV',                   sheet:'SL'},
+  {id:'ATELIER',name:'Atelier',          note:'Released by Atelier team',       sheet:'ATELIER'},
+  {id:'RET',    name:'Retention',        note:'Needs PM approval',              sheet:'RET'},
+  {id:'REMOVED',name:'Removed',          note:'Legal hold, auto-pay, legacy',   sheet:'REMOVED'},
+];
+const BMAP = Object.fromEntries(BUCKETS.map(b=>[b.id,b]));
+const AGE_LABELS = ['Current','Over 30','Over 60','Over 90','Over 120'];
+const FIELDS = [
+  ['vn','Vendor name'],['vid','Vendor ID'],['loc','Location'],['acct','Expense account'],
+  ['pid','Project ID'],['pfx','Project prefix'],['job','Job code'],['cc','Cost code'],['ct','Cost type'],
+  ['doc','Invoice / document'],['ds','Description'],
+];
+const OPS = [['is','is one of'],['isnot','is not one of'],['contains','contains'],['starts','starts with'],['ends','ends with']];
+const NSHARD = 16;
+
+/* ---------- state ---------- */
+const S = {
+  db:null, user:null, downloads:null, uid:null, canWrite:true,
+  meta:null, rows:[], byKey:new Map(),
+  rules:[], issueLabels:{}, rulesDraft:null, rulesDirty:false,
+  ovr:new Map(), runs:[],
+  asOf:null,
+  view:{type:'summary'}, gv:{}, sel:new Set(), collapsed:new Set(),
+  derivedStamp:0, activeRun:null, loading:true,
+};
+
+/* ---------- utils ---------- */
+const $ = (s,el=document)=>el.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt$ = (n,dec=2)=> (n<0?'−':'')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const fmtK = n => { const a=Math.abs(n); const s=n<0?'−':''; if(a>=1e6) return s+'$'+(a/1e6).toFixed(2)+'M'; if(a>=1e3) return s+'$'+(a/1e3).toFixed(1)+'K'; return s+'$'+a.toFixed(0); };
+const fmtN = n => n.toLocaleString('en-US');
+const fmtD = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${m}/${d}/${y.slice(2)}`; };
+const longD = iso => { if(!iso) return ''; const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+const todayISO = () => { const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const dayNum = iso => Math.floor(Date.parse(iso+'T00:00:00Z')/864e5);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),2600); }
+function shardOf(k){ let h=0; for(let i=0;i<k.length;i++) h=(Math.imul(h,31)+k.charCodeAt(i))>>>0; return h%NSHARD; }
+const sid = i => 's'+String(i).padStart(2,'0');
+function lineKey(vid,doc,ln,pid){ return [vid,doc,ln,pid].map(x=>String(x??'').trim()).join('|').replace(/[^A-Za-z0-9_-]/g,'_'); }
+
+/* ---------- classification ---------- */
+function deriveFields(r){
+  const core=(r.pid||'').replace(/^[A-Z]-/,''); const parts=core.split('-');
+  r.pfx = core?parts[0]:''; r.job = parts[1]||'';
+}
+function compileRules(rules){
+  return rules.filter(r=>r.on!==false).map(r=>({id:r.id,name:r.name,to:r.to,all:(r.all||[]).map(c=>({f:c.f,op:c.op,v:(c.v||[]).map(x=>String(x).trim().toLowerCase()).filter(Boolean)}))}));
+}
+function test(val,op,vals){
+  const v=String(val??'').trim().toLowerCase();
+  switch(op){
+    case 'is': return vals.includes(v);
+    case 'isnot': return !vals.includes(v);
+    case 'contains': return vals.some(x=>v.includes(x));
+    case 'starts': return vals.some(x=>v.startsWith(x));
+    case 'ends': return vals.some(x=>v.endsWith(x));
+  } return false;
+}
+function classify(r,compiled){
+  for(const ru of compiled){
+    if(!ru.all.length) continue;
+    let ok=true; for(const c of ru.all){ if(!test(r[c.f],c.op,c.v)){ok=false;break;} }
+    if(ok) return ru;
+  }
+  return null;
+}
+function derive(){
+  const compiled=compileRules(S.rules);
+  const asDay=dayNum(S.asOf||todayISO());
+  const inRun=new Map();
+  for(const run of S.runs) for(const l of (run.lines||[])) inRun.set(l.k,run);
+  const hits={};
+  for(const r of S.rows){
+    const ru=classify(r,compiled);
+    r.ruleB = ru?ru.to:'AGING'; r.ruleName = ru?ru.name:'Default: project aging'; r.ruleId = ru?ru.id:null;
+    if(ru){ (hits[ru.id] ||= {n:0,t:0}); hits[ru.id].n++; hits[ru.id].t+=r.tot; }
+    const o=S.ovr.get(r.k);
+    r.man = !!(o && o.b && BMAP[o.b]);
+    r.b = r.man ? o.b : r.ruleB;
+    r.cmt = (o && o.c) || '';
+    r.oat = o && o.at;
+    const d = r.idate ? asDay-dayNum(r.idate) : 0;
+    r.age=d; r.ab = d<=30?0:d<=60?1:d<=90?2:d<=120?3:4;
+    r.run = inRun.get(r.k)||null;
+  }
+  S.ruleHits=hits;
+  S.derivedStamp++;
+}
+function totals(rows){
+  const t={n:0,tot:0,a:[0,0,0,0,0],sched:0,rel:0};
+  for(const r of rows){ t.n++; t.tot+=r.tot; t.a[r.ab]+=r.tot; if(r.run){ if(r.run.status==='released') t.rel+=r.tot; else t.sched+=r.tot; } }
+  return t;
+}
+function rowsIn(b){ return S.rows.filter(r=>r.b===b); }
+
+/* ---------- Fabric connection (Entra sign-in + API for GraphQL) ---------- */
+const CFG = window.AP_CONFIG || {};
+const F = {msal:null, account:null, names:{}};
+function setSave(text,err){ const el=$('#saveState'); el.textContent=text; el.classList.toggle('err',!!err); }
+
+async function initAuth(){
+  const msal = await import('https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.27.0/+esm');
+  F.msal = new msal.PublicClientApplication({
+    auth:{clientId:CFG.clientId, authority:`https://login.microsoftonline.com/${CFG.tenantId}`, redirectUri:location.origin + location.pathname},
+    cache:{cacheLocation:'localStorage'}});
+  await F.msal.initialize();
+  const res = await F.msal.handleRedirectPromise();
+  F.account = res?.account || F.msal.getAllAccounts()[0] || null;
+  return F.account;
+}
+async function token(){
+  try{ return (await F.msal.acquireTokenSilent({scopes:CFG.scopes, account:F.account})).accessToken; }
+  catch(e){ await F.msal.acquireTokenRedirect({scopes:CFG.scopes, account:F.account}); throw e; }
+}
+async function gql(query, variables){
+  const r = await fetch(CFG.graphqlEndpoint, {method:'POST',
+    headers:{'Content-Type':'application/json', Authorization:'Bearer '+await token()},
+    body:JSON.stringify({query, variables:variables||{}})});
+  let body; try{ body = await r.json(); }catch{ throw new Error(`GraphQL ${r.status}: not JSON`); }
+  if(body.errors?.length) throw new Error(body.errors.map(e=>e.message).join('; '));
+  if(!r.ok) throw new Error(`GraphQL ${r.status}`);
+  return body.data;
+}
+/* Find the generated GraphQL names for our tables and procedures (they depend on how the API was set up). */
+async function discoverNames(){
+  const d = await gql(`{ __schema { queryType { fields { name } } mutationType { fields { name } } } }`);
+  const qs = d.__schema.queryType.fields.map(f=>f.name), ms = (d.__schema.mutationType?.fields||[]).map(f=>f.name);
+  const pick = (list, want, hint) => list.includes(want) ? want
+      : list.find(n=>n.toLowerCase()===String(want).toLowerCase())
+     || list.filter(n=>n.toLowerCase().includes(hint)).sort((x,y)=>x.length-y.length)[0];
+  const N = CFG.names || {};
+  F.names = {
+    lines:     pick(qs, N.lines,     'ap_aging_workspace'),
+    decisions: pick(qs, N.decisions, 'line_decision'),
+    rules:     pick(qs, N.rules,     'current_rules'),
+    runs:      pick(qs.filter(n=>!n.toLowerCase().includes('pay_run_line')), N.runs, 'pay_run'),
+    runLines:  pick(qs, N.runLines,  'pay_run_line'),
+    setDecisions: pick(ms, N.setDecisions, 'usp_set_decisions'),
+    saveRules:    pick(ms, N.saveRules,    'usp_save_rules'),
+    saveRun:      pick(ms, N.saveRun,      'usp_save_pay_run'),
+    deleteRun:    pick(ms, N.deleteRun,    'usp_delete_pay_run'),
+  };
+  const missing = Object.entries(F.names).filter(([,v])=>!v).map(([k])=>k);
+  return {missing, qs, ms};
+}
+async function readAll(name, fields, filter){
+  const out=[]; let after=null;
+  for(let page=0; page<200; page++){
+    const d = await gql(`query($after:String){ ${name}(first:${CFG.pageSize||5000}, after:$after${filter?', filter:'+filter:''}) { items { ${fields} } endCursor hasNextPage } }`, {after});
+    const r = d[name]; out.push(...(r.items||[]));
+    if(!r.hasNextPage) break; after = r.endCursor;
+  }
+  return out;
+}
+const iso10 = v => v ? String(v).slice(0,10) : '';
+const numv = v => v==null || v==='' ? null : Number(v);
+
+async function loadLines(){
+  const M = CFG.lineFields;
+  const fields = [...new Set(Object.values(M).filter(Boolean).concat(CFG.loadIdField?[CFG.loadIdField]:[]))].join(' ');
+  let items = await readAll(F.names.lines, fields, CFG.openFilter || '');
+  // If the table ever holds more than one load, keep only the newest one
+  if(CFG.loadIdField && M.seen){
+    const latest = new Map(); for(const it of items){ const id=it[CFG.loadIdField]; const t=it[M.seen]||''; if(!latest.has(id)||latest.get(id)<t) latest.set(id,t); }
+    if(latest.size>1){ const newest=[...latest.entries()].sort((a,b)=>a[1]<b[1]?1:-1)[0][0]; items=items.filter(it=>it[CFG.loadIdField]===newest); }
+  }
+  const seenKeys = new Map();
+  const rows = items.map(it=>{
+    const r = {vid:it[M.vid]||'', vn:it[M.vn]||'', ds:it[M.ds]||'', loc:it[M.loc]||'',
+      acct:String(it[M.acct]??''), pid:it[M.pid]||'', cc:it[M.cc]||'', ct:it[M.ct]||'', ln:String(it[M.ln]??''), doc:it[M.doc]||'',
+      idate:iso10(it[M.idate]), amt:numv(it[M.amt]), paid:numv(it[M.paid]), tot:numv(it[M.tot])||0,
+      wc:iso10(it[M.wc]), ed:iso10(it[M.ed]), seen:M.seen?it[M.seen]:null, asof:M.asOf?iso10(it[M.asOf]):null};
+    let k = M.k ? it[M.k] : lineKey(r.vid, r.doc, r.ln, r.pid);      // same key the decisions are stored under
+    const n = (seenKeys.get(k)||0)+1; seenKeys.set(k,n); r.k = n===1 ? k : `${k}_${n}`;
+    return r;
+  });
+  setRows(rows);
+  const seen = rows.map(r=>r.seen).filter(Boolean).sort().pop();
+  S.meta = {rowCount:rows.length, refreshedAt:seen, sageAsOf:rows.find(r=>r.asof)?.asof||null, loadedAt:new Date().toISOString()};
+}
+async function loadDecisions(){
+  const items = await readAll(F.names.decisions, 'line_key bucket note updated_by updated_at');
+  const m = new Map();
+  for(const d of items) if(d.bucket || d.note) m.set(d.line_key, {b:d.bucket||undefined, c:d.note||undefined, by:d.updated_by, at:d.updated_at});
+  for(const [k,v] of pendingDec) { const cur=m.get(k)||{}; if(v.set_bucket) cur.b=v.bucket||undefined; if(v.set_note) cur.c=v.note||undefined; if(cur.b||cur.c) m.set(k,cur); else m.delete(k); }
+  S.ovr = m;
+}
+async function loadRules(){
+  const items = await readAll(F.names.rules, 'rules_json labels_json saved_by saved_at');
+  const r = items[0];
+  if(r){ S.rules = JSON.parse(r.rules_json||'[]'); S.issueLabels = JSON.parse(r.labels_json||'{}'); S.rulesInfo = {by:r.saved_by, at:r.saved_at}; }
+}
+async function loadRuns(){
+  const runs = await readAll(F.names.runs, 'run_id name pay_date status created_at updated_at released_at');
+  const lines = await readAll(F.names.runLines, 'run_id line_key vendor_id vendor_name project_id document_number line_no invoice_date amount from_bucket');
+  const byRun = groupBy(lines, l=>l.run_id);
+  S.runs = runs.map(r=>({id:r.run_id, name:r.name, date:iso10(r.pay_date), status:r.status, createdAt:r.created_at,
+      updatedAt:r.updated_at, releasedAt:r.released_at,
+      lines:(byRun.get(r.run_id)||[]).map(l=>({k:l.line_key, vid:l.vendor_id, vn:l.vendor_name||'', pid:l.project_id, doc:l.document_number||'',
+        ln:l.line_no, idate:iso10(l.invoice_date), tot:numv(l.amount)||0, b:l.from_bucket}))}))
+    .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+}
+
+/* ----- saving ----- */
+const pendingDec = new Map();   // line_key -> {set_bucket, bucket, set_note, note}
+let flushT=null, flushing=Promise.resolve();
+function queueOvr(k,patch){
+  if(!S.canWrite){ toast('You have view access only.'); return; }
+  const cur=S.ovr.get(k)||{}; let next;
+  if(patch===null){ next=null; }
+  else { next={...cur}; for(const [f,v] of Object.entries(patch)){ if(v===null||v==='') delete next[f]; else next[f]=v; } if(!next.b&&!next.c) next=null; }
+  if(next){ next.at=new Date().toISOString(); S.ovr.set(k,next); } else S.ovr.delete(k);
+  const p = pendingDec.get(k) || {line_key:k, set_bucket:false, bucket:null, set_note:false, note:null};
+  if(patch===null || 'b' in patch){ p.set_bucket=true; p.bucket=patch?.b||null; }
+  if(patch===null || 'c' in patch){ p.set_note=true; p.note=patch?.c||null; }
+  pendingDec.set(k,p);
+  setSave('Saving…'); clearTimeout(flushT); flushT=setTimeout(flush,600);
+}
+function flush(){
+  if(!pendingDec.size) return;
+  const items=[...pendingDec.values()]; pendingDec.clear();
+  flushing = flushing.then(async()=>{
+    try{
+      for(let i=0;i<items.length;i+=500){
+        await gql(`mutation($items:String!,$u:String){ ${F.names.setDecisions}(items:$items, app_user:$u){ affected } }`,
+                  {items:JSON.stringify(items.slice(i,i+500)), u:S.uid});
+      }
+      if(!pendingDec.size) setSave('All changes saved');
+    }catch(e){
+      console.error(e);
+      for(const it of items) if(!pendingDec.has(it.line_key)) pendingDec.set(it.line_key,it);   // keep for retry
+      setSave('Not saved: '+e.message.slice(0,80),true); toast('Could not save. Your changes are kept; click Refresh to retry.');
+      if(/permission|denied|forbidden|not authorized/i.test(e.message)){ S.canWrite=false; }
+    }
+  });
+}
+window.addEventListener('beforeunload',e=>{ if(pendingDec.size){ flush(); e.preventDefault(); e.returnValue=''; } });
+
+async function saveRun(run){
+  setSave('Saving…');
+  const payload = {run_id:run.id, name:run.name, pay_date:run.date||null, status:run.status,
+    lines:run.lines.map(l=>({line_key:l.k, vendor_id:l.vid, vendor_name:l.vn, project_id:l.pid, document_number:l.doc,
+      line_no:l.ln, invoice_date:l.idate||null, amount:l.tot, from_bucket:l.b}))};
+  try{
+    const d = await gql(`mutation($j:String!,$exp:DateTime,$u:String){ ${F.names.saveRun}(run_json:$j, expected_updated_at:$exp, app_user:$u){ run_id updated_at } }`,
+      {j:JSON.stringify(payload), exp:run.updatedAt||null, u:S.uid});
+    const res = d[F.names.saveRun]; const row = Array.isArray(res)?res[0]:res;
+    if(row) run.updatedAt = row.updated_at;
+    setSave('All changes saved');
+  }catch(e){
+    console.error(e); setSave('Not saved',true);
+    toast(/changed this pay run/i.test(e.message) ? 'Someone else changed this pay run. Reloading it.' : 'Could not save the pay run: '+e.message.slice(0,100));
+    await loadRuns(); derive(); renderAll();
+  }
+}
+async function deleteRun(id){
+  try{ await gql(`mutation($id:String!,$u:String){ ${F.names.deleteRun}(run_id:$id, app_user:$u){ run_id } }`, {id, u:S.uid}); }
+  catch(e){ toast('Could not delete: '+e.message.slice(0,100)); await loadRuns(); derive(); renderAll(); }
+}
+function setRows(rows){
+  for(const r of rows){ deriveFields(r); r.tot=+r.tot||0; }
+  S.rows=rows; S.byKey=new Map(rows.map(r=>[r.k,r]));
+}
+
+/* ---------- boot ---------- */
+async function boot(){
+  S.asOf=todayISO(); $('#asOf').value=S.asOf;
+  wireTop();
+  const main=$('#main');
+  if(!CFG.clientId || !CFG.tenantId || !CFG.graphqlEndpoint){
+    S.loading=false; $('#src').textContent='Not configured';
+    main.innerHTML=`<div class="setup"><h1>Almost there</h1><p class="lede">Fill in <b>config.js</b> with the Entra app's client ID, your tenant ID and the Fabric GraphQL endpoint, then reload.</p></div>`; return;
+  }
+  try{ await initAuth(); }catch(e){ main.innerHTML=`<div class="setup"><h1>Sign-in problem</h1><pre>${esc(e.message)}</pre></div>`; return; }
+  if(!F.account){
+    S.loading=false; $('#src').textContent='';
+    main.innerHTML=`<div class="signin"><h1>AP Workbench</h1><p class="lede">Sign in with your Blue Heron Microsoft account to see payables.</p><button class="btn primary" id="signIn">Sign in</button></div>`;
+    $('#signIn').onclick=()=>F.msal.loginRedirect({scopes:CFG.scopes}); return;
+  }
+  S.uid = F.account.username;
+  $('#who').innerHTML=`${esc(F.account.name||F.account.username)} <button id="signOut">Sign out</button>`;
+  $('#signOut').onclick=()=>F.msal.logoutRedirect({account:F.account});
+  renderAll();
+  try{
+    $('#src').textContent='Connecting to Fabric…';
+    const {missing, qs, ms} = await discoverNames();
+    if(missing.length){
+      S.loading=false; $('#src').textContent='Setup incomplete';
+      main.innerHTML=`<div class="setup"><h1>The GraphQL API is missing some items</h1>
+        <p class="lede">Couldn't find: <b>${esc(missing.join(', '))}</b>. Add those tables or procedures to the API for GraphQL, or set their names under <code>names</code> in config.js.</p>
+        <p class="note">Queries the API offers:</p><pre>${esc(qs.join('\n'))}</pre><p class="note">Mutations:</p><pre>${esc(ms.join('\n')||'(none)')}</pre></div>`;
+      return;
+    }
+    await refreshAll(true);
+  }catch(e){
+    console.error(e); S.loading=false; $('#src').textContent='Could not load';
+    main.innerHTML=`<div class="setup"><h1>Could not load from Fabric</h1><pre>${esc(e.message)}</pre>
+      <p class="note">Check that you have access to the GraphQL API (Run Queries and Mutations) and to the Lakehouse and SQL database behind it.</p></div>`;
+    return;
+  }
+  setInterval(async()=>{ if(document.hidden || pendingDec.size) return;
+    try{ await loadDecisions(); await loadRuns(); derive(); renderAll(true); }catch(e){ console.warn('background refresh',e); } }, (CFG.pollSeconds||60)*1000);
+}
+async function refreshAll(first){
+  setSave(first?'':'Refreshing…');
+  if(pendingDec.size) flush(); await flushing;
+  $('#src').textContent='Loading lines…';
+  await Promise.all([loadLines(), loadDecisions(), loadRules(), loadRuns()]);
+  S.loading=false; renderSrc(); derive(); renderAll();
+  setSave(pendingDec.size?'Saving…':'Up to date');
+}
+function renderSrc(){
+  const m=S.meta; if(!m) return;
+  $('#src').innerHTML=`<strong>${fmtN(m.rowCount)}</strong> open lines from Fabric` + (m.refreshedAt?`, loaded <strong>${esc(new Date(m.refreshedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))}</strong>`:'') + (m.sageAsOf?` (Sage as of ${esc(longD(m.sageAsOf))})`:'');
+}
+
+/* ---------- top bar ---------- */
+function wireTop(){
+  $('#asOf').addEventListener('change',e=>{ S.asOf=e.target.value||todayISO(); derive(); renderAll(); });
+  $('#btnRefresh').addEventListener('click',()=>refreshAll(false).catch(e=>{ setSave('Refresh failed',true); toast(e.message.slice(0,120)); }));
+  $('#btnExport').addEventListener('click',exportWorkbook);
+}
+
+/* ---------- nav ---------- */
+function ribbonHTML(a,tot){
+  const pos=a.map(x=>Math.max(0,x)); const s=pos.reduce((x,y)=>x+y,0)||1;
+  return `<div class="ribbon" aria-hidden="true">${pos.map(x=>`<i style="width:${(x/s*100).toFixed(2)}%"></i>`).join('')}</div>`;
+}
+function renderNav(){
+  const v=S.view; const nav=$('#nav');
+  const item=(key,name,amt,sub,rib,cur)=>`<button class="navi" data-nav="${key}" aria-current="${cur}"><div class="row1"><span class="nm">${esc(name)}</span><span class="amt num">${amt}</span></div>${sub?`<div class="sub">${sub}</div>`:''}${rib||''}</button>`;
+  let h='';
+  const all=S.rows.filter(r=>r.b!=='REMOVED'); const ta=totals(all);
+  h+=item('summary','Summary',fmtK(ta.tot),`<span>${fmtN(ta.n)} lines in aging</span>`,ribbonHTML(ta.a),v.type==='summary');
+  h+=`<div class="navh">Payables</div>`;
+  for(const b of BUCKETS){
+    if(b.id==='REMOVED') h+=`<div class="navh">Set aside</div>`;
+    const t=totals(rowsIn(b.id));
+    h+=item('b:'+b.id,b.name,fmtK(t.tot),`<span>${esc(b.note)}</span><span>${fmtN(t.n)}</span>`,ribbonHTML(t.a),v.type==='bucket'&&v.b===b.id);
+  }
+  h+=`<div class="navh">Tools</div>`;
+  const drafts=S.runs.filter(r=>r.status!=='released');
+  h+=item('runs','Pay runs','',`<span>${drafts.length} open, ${S.runs.length-drafts.length} released</span>`,'',v.type==='runs');
+  h+=item('rules','Sorting rules','',`<span>${S.rules.filter(r=>r.on!==false).length} rules active</span>`,'',v.type==='rules');
+  nav.innerHTML=h;
+  nav.onclick=e=>{ const b=e.target.closest('[data-nav]'); if(!b) return; const k=b.dataset.nav;
+    if(k==='summary') go({type:'summary'}); else if(k==='runs') go({type:'runs'}); else if(k==='rules') go({type:'rules'}); else go({type:'bucket',b:k.slice(2)}); };
+}
+function go(view){ S.view=view; S.sel.clear(); renderAll(); $('#main').scrollTop=0; }
+
+/* ---------- render dispatcher ---------- */
+let lastSoft=0;
+function renderAll(soft){
+  renderNav();
+  const v=S.view;
+  if(soft && v.type==='bucket' && gridCtx){ refreshGrid(); return; }
+  if(soft && v.type==='rules'){ updateRuleHits(); return; }
+  const m=$('#main'); m.onclick=m.onchange=m.oninput=null;
+  if(v.type==='summary') renderSummary();
+  else if(v.type==='bucket') renderBucket(v.b);
+  else if(v.type==='runs') renderRuns();
+  else if(v.type==='rules') renderRules();
+}
+
+/* ---------- summary ---------- */
+function renderSummary(){
+  gridCtx=null;
+  const main=$('#main');
+  if(S.loading){ main.innerHTML='<div class="loading">Loading payables…</div>'; return; }
+  if(!S.rows.length){ main.innerHTML=`<div class="pane"><h1>No open lines</h1><p class="lede">The Fabric table returned no open lines. Check that today's Sage load ran.</p></div>`; return; }
+  const inAging=S.rows.filter(r=>r.b!=='REMOVED'); const T=totals(inAging);
+  const order=['AGING','ISSUES','DF','SL','CANYONS','ATELIER','DEV','SGA','RET'];
+  const row=(label,t,cls,attr)=>`<tr class="${cls||''}" ${attr||''}><td>${label}</td><td class="num">${fmtN(t.n)}</td>${t.a.map(x=>`<td class="num ${x?'':'z'}">${x?fmt$(x,0):'–'}</td>`).join('')}<td class="num"><b>${fmt$(t.tot,0)}</b></td><td class="num ${t.sched?'':'z'}">${t.sched?fmt$(t.sched,0):'–'}</td><td class="num ${t.rel?'':'z'}">${t.rel?fmt$(t.rel,0):'–'}</td></tr>`;
+  let body='';
+  for(const id of order){
+    const rs=rowsIn(id); const t=totals(rs);
+    body+=row(esc(BMAP[id].name),t,'click',`data-go="${id}"`);
+    if(id==='ISSUES'){
+      const g=groupBy(rs,r=>issueKey(r));
+      for(const [k,arr] of [...g.entries()].sort()) body+=row(esc(issueLabel(k)),totals(arr),'child click',`data-go="ISSUES" data-q="${esc(k)}"`);
+    }
+  }
+  body+=row('Total aging',T,'tot');
+  const rem=rowsIn('REMOVED'); const gr=groupBy(rem,r=>r.man?'Moved here manually':r.ruleName);
+  let rb=''; for(const [k,arr] of [...gr.entries()].sort((a,b)=>totals(b[1]).tot-totals(a[1]).tot)){ const t=totals(arr); rb+=`<tr class="click" data-go="REMOVED" data-q=""><td>${esc(k)}</td><td class="num">${fmtN(t.n)}</td><td class="num">${fmt$(t.tot,0)}</td></tr>`; }
+  const man=S.rows.filter(r=>r.man).length; const pct=x=>T.tot?(x/T.tot*100):0;
+  main.innerHTML=`<div class="pane">
+    <h1>Accounts payable aging</h1>
+    <p class="lede">As of ${esc(longD(S.asOf))}. Aging is counted from invoice date. Click any row to open that tab.</p>
+    <div class="hero">
+      <div><div class="big num" style="text-align:left">${fmt$(T.tot,0)}</div><div class="cap">${fmtN(T.n)} open lines across ${order.length} tabs, excluding removed items</div></div>
+      <div>
+        <div class="bigribbon" role="img" aria-label="Aging mix">${T.a.map((x,i)=>`<div style="width:${Math.max(0,pct(x)).toFixed(2)}%" title="${AGE_LABELS[i]}: ${fmt$(x,0)}">${pct(x)>7?fmtK(x):''}</div>`).join('')}</div>
+        <div class="legend">${AGE_LABELS.map((l,i)=>`<span style="--c:var(--a${i})">${l} ${pct(T.a[i]).toFixed(0)}%</span>`).join('')}</div>
+      </div>
+    </div>
+    <h2>By tab</h2>
+    <div class="tablewrap"><table class="sum"><thead><tr><th>Tab</th><th>Lines</th>${AGE_LABELS.map(l=>`<th>${l}</th>`).join('')}<th>Total</th><th>In open pay runs</th><th>Released</th></tr></thead><tbody>${body}</tbody></table></div>
+    <h2>Not in aging</h2>
+    <p class="note" style="margin:-4px 0 10px">Lines the rules set aside: legal holds, auto-pay vendors, taxes and utilities, and legacy items from the old system. ${fmtN(man)} lines across all tabs have a manual change that overrides the rules.</p>
+    <div class="tablewrap"><table class="sum" style="max-width:640px"><thead><tr><th>Reason</th><th>Lines</th><th>Total</th></tr></thead><tbody>${rb||'<tr><td colspan=3 class="z">Nothing removed</td></tr>'}</tbody></table></div>
+  </div>`;
+  main.onclick=e=>{ const tr=e.target.closest('[data-go]'); if(!tr) return; const b=tr.dataset.go; S.gv[b]={...gvOf(b),q:tr.dataset.q||''}; go({type:'bucket',b}); };
+}
+function groupBy(arr,f){ const m=new Map(); for(const x of arr){ const k=f(x); (m.get(k)||m.set(k,[]).get(k)).push(x);} return m; }
+function issueKey(r){ for(const k of Object.keys(S.issueLabels)) if((r.pid||'').includes(k)) return k; return r.pid||'(no project)'; }
+function issueLabel(k){ return S.issueLabels[k]||k; }
+
+/* ---------- bucket grid ---------- */
+const ROWH=32;
+let gridCtx=null;
+function gvOf(b){ return S.gv[b] ||= {q:'',age:-1,group:b==='ISSUES'?'project':'none',sort:{f:'vn',dir:1},man:false,norun:false}; }
+function filtered(b){
+  const g=gvOf(b); const q=g.q.trim().toLowerCase(); const terms=q?q.split(/\s+/):[];
+  let rs=rowsIn(b);
+  if(g.age>=0) rs=rs.filter(r=>r.ab===g.age);
+  if(g.man) rs=rs.filter(r=>r.man||r.cmt);
+  if(g.norun) rs=rs.filter(r=>!r.run);
+  if(terms.length) rs=rs.filter(r=>{ const hay=(r.vn+' '+r.vid+' '+r.pid+' '+r.doc+' '+r.ds+' '+r.cc+' '+r.cmt+' '+r.loc+' '+r.ruleName).toLowerCase(); return terms.every(t=>hay.includes(t)); });
+  const {f,dir}=g.sort;
+  const val=r=>f==='age'?r.age:f==='tot'?r.tot:f==='idate'?r.idate:(r[f]||'').toLowerCase();
+  rs.sort((a,b)=>{ const x=val(a),y=val(b); return (x<y?-1:x>y?1:0)*dir || (a.vn<b.vn?-1:1); });
+  return rs;
+}
+function buildItems(b,rs){
+  const g=gvOf(b);
+  if(g.group==='none') return rs.map(r=>({t:'r',r}));
+  const kf = g.group==='vendor'? r=>r.vn : b==='ISSUES'? r=>issueKey(r) : r=>(r.pid||'(no project)');
+  const lf = g.group==='vendor'? k=>k : b==='ISSUES'? k=>issueLabel(k) : k=>k;
+  const groups=groupBy(rs,kf);
+  const keys=[...groups.keys()].sort((a,b2)=>lf(a).localeCompare(lf(b2)));
+  const items=[];
+  for(const k of keys){ const arr=groups.get(k); const gk=b+'|'+g.group+'|'+k; const open=!S.collapsed.has(gk);
+    items.push({t:'g',k:gk,label:lf(k),rows:arr,open}); if(open) for(const r of arr) items.push({t:'r',r}); }
+  return items;
+}
+function renderBucket(b){
+  const meta=BMAP[b]; const g=gvOf(b);
+  const main=$('#main');
+  const moveOpts=BUCKETS.filter(x=>x.id!==b).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  main.innerHTML=`
+  <div class="gridhead">
+    <div class="t"><h1>${esc(meta.name)}</h1><span class="note">${esc(meta.note)}</span></div>
+    <div class="toolbar">
+      <input class="search" id="q" type="search" placeholder="Search vendor, project, invoice, cost code, note" value="${esc(g.q)}" aria-label="Search lines">
+      <div class="seg" role="group" aria-label="Aging filter" id="ageSeg">
+        <button data-age="-1" aria-pressed="${g.age===-1}">All</button>${AGE_LABELS.map((l,i)=>`<button data-age="${i}" aria-pressed="${g.age===i}">${l.replace('Over ','')}${i?'+':''}</button>`).join('')}
+      </div>
+      <select class="s" id="grp" aria-label="Group lines"><option value="none">No grouping</option><option value="vendor">Group by vendor</option><option value="project">Group by project</option></select>
+      <label class="chk"><input type="checkbox" id="fMan" ${g.man?'checked':''}> Changed or noted</label>
+      <label class="chk"><input type="checkbox" id="fRun" ${g.norun?'checked':''}> Not in a pay run</label>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div id="bulk"></div>
+  </div>
+  <div class="gridwrap" id="gw">
+    <div class="gcols ghdr" id="ghdr"></div>
+    <div class="vbody" id="vb"></div>
+  </div>`;
+  $('#grp').value=g.group;
+  $('#q').addEventListener('input',e=>{ g.q=e.target.value; S.sel.clear(); refreshGrid(); });
+  $('#ageSeg').addEventListener('click',e=>{ const x=e.target.closest('[data-age]'); if(!x) return; g.age=+x.dataset.age; $('#ageSeg').querySelectorAll('button').forEach(bt=>bt.setAttribute('aria-pressed',bt===x)); refreshGrid(); });
+  $('#grp').addEventListener('change',e=>{ g.group=e.target.value; refreshGrid(); });
+  $('#fMan').addEventListener('change',e=>{ g.man=e.target.checked; refreshGrid(); });
+  $('#fRun').addEventListener('change',e=>{ g.norun=e.target.checked; refreshGrid(); });
+  const gw=$('#gw');
+  gw.addEventListener('scroll',()=>{ if(!gridCtx||gridCtx.raf) return; gridCtx.raf=requestAnimationFrame(()=>{ gridCtx.raf=0; paintRows(); }); });
+  gw.addEventListener('click',onGridClick);
+  gw.addEventListener('change',onGridChange);
+  gridCtx={b,moveOpts};
+  refreshGrid();
+}
+function hdrHTML(b){
+  const g=gvOf(b); const s=(f,l,cls='')=>`<div class="sortable ${cls} ${g.sort.f===f?'on':''}" data-sort="${f}">${l}${g.sort.f===f?(g.sort.dir>0?' ▲':' ▼'):''}</div>`;
+  return `<div><input type="checkbox" id="selAll" aria-label="Select all shown"></div>${s('vn','Vendor')}${s('pid','Project')}${s('cc','Cost code')}${s('doc','Invoice')}${s('idate','Inv. date')}${s('age','Age','num')}${s('tot','Open total','num')}<div>Tab</div><div>Sorted by</div><div>Note</div><div>Pay run</div>`;
+}
+function refreshGrid(){
+  if(!gridCtx) return; const b=gridCtx.b;
+  const rs=filtered(b); gridCtx.rs=rs; gridCtx.items=buildItems(b,rs);
+  // drop selections no longer visible
+  const vis=new Set(rs.map(r=>r.k)); for(const k of [...S.sel]) if(!vis.has(k)) S.sel.delete(k);
+  $('#ghdr').innerHTML=hdrHTML(b);
+  $('#vb').style.height=(gridCtx.items.length*ROWH)+'px';
+  const t=totals(rs);
+  $('#stats').innerHTML=`<span>${fmtN(t.n)} lines<b>${fmt$(t.tot)}</b></span>`+AGE_LABELS.map((l,i)=>`<span class="k" style="--c:var(--a${i})">${l}<b>${fmt$(t.a[i],0)}</b></span>`).join('')+(t.sched?`<span>In open pay runs<b>${fmt$(t.sched,0)}</b></span>`:'');
+  renderBulk(); paintRows();
+}
+function rowHTML(it,i){
+  const top=i*ROWH;
+  if(it.t==='g'){
+    const t=totals(it.rows); const allSel=it.rows.every(r=>S.sel.has(r.k));
+    return `<div class="gcols vrow grp" style="top:${top}px" data-g="${esc(it.k)}"><div><input type="checkbox" data-gsel="${esc(it.k)}" ${allSel?'checked':''} aria-label="Select group"></div><div style="grid-column:2/7"><span class="caret ${it.open?'open':''}">▸</span> ${esc(it.label)} <span class="note" style="font-weight:400">${fmtN(t.n)} lines</span></div><div></div><div class="num">${fmt$(t.tot)}</div><div style="grid-column:9/13">${ribbonHTML(t.a)}</div></div>`;
+  }
+  const r=it.r; const sel=S.sel.has(r.k);
+  const rel=r.run&&r.run.status==='released';
+  const why = r.man ? `<span class="why man" title="Rules would put this in ${esc(BMAP[r.ruleB].name)} (${esc(r.ruleName)})${r.oat?'. Changed '+esc(longD(r.oat.slice(0,10))):''}">Manual change</span>` : `<span class="why" title="${esc(r.ruleName)}">${esc(r.ruleName)}</span>`;
+  return `<div class="gcols vrow ${sel?'sel':''} ${rel?'paid':''}" style="top:${top}px" data-k="${esc(r.k)}">
+    <div><input type="checkbox" data-sel ${sel?'checked':''} aria-label="Select line"></div>
+    <div title="${esc(r.vid+'  '+r.vn+(r.ds?'\n'+r.ds:'')+(r.loc?'\n'+r.loc:''))}">${esc(r.vn)}</div>
+    <div class="cond" title="${esc(r.pid)}">${esc(r.pid)}</div>
+    <div class="cond">${esc(r.cc)}</div>
+    <div class="cond" title="${esc(r.doc)} line ${esc(r.ln)}">${esc(r.doc)}</div>
+    <div>${fmtD(r.idate)}</div>
+    <div class="num age b${r.ab}">${r.age}d</div>
+    <div class="num">${fmt$(r.tot)}</div>
+    <div><select class="cell-sel" data-move aria-label="Tab">${BUCKETS.map(x=>`<option value="${x.id}" ${x.id===r.b?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
+    <div>${why}</div>
+    <div data-cm><span class="cm ${r.cmt?'':'empty'}" title="${esc(r.cmt)}">${esc(r.cmt)}</span></div>
+    <div>${r.run?`<span class="pill ${rel?'good':''}" title="${esc(r.run.name)}">${esc(r.run.name)}</span>`:''}</div>
+  </div>`;
+}
+function paintRows(){
+  if(!gridCtx) return; const gw=$('#gw'); if(!gw) return;
+  const items=gridCtx.items; const st=gw.scrollTop; const h=gw.clientHeight;
+  const a=Math.max(0,Math.floor(st/ROWH)-15), z=Math.min(items.length,Math.ceil((st+h)/ROWH)+15);
+  if(document.activeElement && document.activeElement.classList.contains('cm-in')) return;
+  let html=''; for(let i=a;i<z;i++) html+=rowHTML(items[i],i);
+  if(!items.length) html=`<div class="empty-state">${S.loading?'Loading…':S.rows.length?'No lines match these filters.':'No open lines in the Fabric table.'}</div>`;
+  $('#vb').innerHTML=html;
+  const sa=$('#selAll'); if(sa){ const rs=gridCtx.rs; sa.checked=rs.length>0&&rs.every(r=>S.sel.has(r.k)); sa.indeterminate=!sa.checked&&rs.some(r=>S.sel.has(r.k)); }
+}
+function onGridClick(e){
+  const b=gridCtx.b; const g=gvOf(b);
+  const sh=e.target.closest('[data-sort]'); if(sh){ const f=sh.dataset.sort; g.sort = g.sort.f===f?{f,dir:-g.sort.dir}:{f,dir:(f==='tot'||f==='age')?-1:1}; refreshGrid(); return; }
+  if(e.target.id==='selAll'){ const on=e.target.checked; for(const r of gridCtx.rs) on?S.sel.add(r.k):S.sel.delete(r.k); renderBulk(); paintRows(); return; }
+  const gs=e.target.closest('[data-gsel]'); if(gs){ const it=gridCtx.items.find(x=>x.t==='g'&&x.k===gs.dataset.gsel); const on=gs.checked; for(const r of it.rows) on?S.sel.add(r.k):S.sel.delete(r.k); renderBulk(); paintRows(); return; }
+  const grp=e.target.closest('.grp'); if(grp && !e.target.closest('input')){ const k=grp.dataset.g; S.collapsed.has(k)?S.collapsed.delete(k):S.collapsed.add(k); refreshGrid(); return; }
+  const cb=e.target.closest('[data-sel]'); if(cb){ const k=cb.closest('[data-k]').dataset.k; cb.checked?S.sel.add(k):S.sel.delete(k); cb.closest('.vrow').classList.toggle('sel',cb.checked); renderBulk(); return; }
+  const cm=e.target.closest('[data-cm]'); if(cm && !e.target.closest('input')){ editComment(cm); return; }
+}
+function onGridChange(e){
+  const mv=e.target.closest('[data-move]'); if(!mv) return;
+  const k=mv.closest('[data-k]').dataset.k; moveLines([k],mv.value);
+}
+function editComment(cell){
+  const k=cell.closest('[data-k]').dataset.k; const r=S.byKey.get(k);
+  if(!S.canWrite){ toast('You have view access only.'); return; }
+  cell.innerHTML=`<input class="cm-in" value="${esc(r.cmt)}" aria-label="Note">`;
+  const inp=cell.firstChild; inp.focus(); inp.select();
+  let done=false;
+  const commit=save=>{ if(done) return; done=true; if(save && inp.value.trim()!==r.cmt){ queueOvr(k,{c:inp.value.trim()}); derive(); } inp.blur(); paintRows(); renderNav(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter') commit(true); if(ev.key==='Escape') commit(false); });
+  inp.addEventListener('blur',()=>commit(true));
+}
+function moveLines(keys,to){
+  if(!S.canWrite){ toast('You have view access only.'); return; }
+  let n=0;
+  for(const k of keys){ const r=S.byKey.get(k); if(!r) continue;
+    if(to===r.ruleB) { if(r.man){ queueOvr(k,{b:null}); n++; } }
+    else if(to!==r.b){ queueOvr(k,{b:to}); n++; } }
+  derive(); S.sel.clear(); renderNav(); refreshGrid();
+  toast(`${fmtN(n)} line${n===1?'':'s'} moved to ${BMAP[to].name}`);
+}
+function resetLines(keys){
+  let n=0; for(const k of keys){ const r=S.byKey.get(k); if(r&&r.man){ queueOvr(k,{b:null}); n++; } }
+  derive(); S.sel.clear(); renderNav(); refreshGrid(); toast(`${fmtN(n)} line${n===1?'':'s'} returned to the rules`);
+}
+function renderBulk(){
+  const el=$('#bulk'); if(!el) return; const b=gridCtx.b;
+  if(!S.sel.size){ el.innerHTML=''; return; }
+  const sel=[...S.sel].map(k=>S.byKey.get(k)).filter(Boolean); const t=totals(sel);
+  const runs=S.runs.filter(r=>r.status!=='released');
+  const quick = b==='AGING'||b==='ISSUES' ? `<button class="btn sm good" data-b="df">Mark drawn &amp; funded</button>` : b==='DF' ? `<button class="btn sm" data-b="undf">Back to aging</button>` : '';
+  el.innerHTML=`<div class="bulk"><span class="cnt">${fmtN(t.n)} selected, ${fmt$(t.tot)}</span>
+    ${quick}
+    <select class="s" data-b="move" aria-label="Move selected to"><option value="">Move to…</option>${gridCtx.moveOpts}</select>
+    <select class="s" data-b="run" aria-label="Add selected to pay run"><option value="">Add to pay run…</option>${runs.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('')}<option value="__new">New pay run…</option></select>
+    ${sel.some(r=>r.run&&r.run.status!=='released')?`<button class="btn sm" data-b="unrun">Remove from pay run</button>`:''}
+    ${sel.some(r=>r.man)?`<button class="btn sm" data-b="reset">Undo manual change</button>`:''}
+    <button class="btn sm ghost" data-b="clear">Clear selection</button></div>`;
+  el.onclick=e=>{ const x=e.target.closest('button[data-b]'); if(!x) return; const k=[...S.sel];
+    if(x.dataset.b==='df') moveLines(k,'DF'); else if(x.dataset.b==='undf') moveLines(k,'AGING');
+    else if(x.dataset.b==='reset') resetLines(k); else if(x.dataset.b==='unrun') removeFromRuns(k);
+    else if(x.dataset.b==='clear'){ S.sel.clear(); renderBulk(); paintRows(); } };
+  el.onchange=e=>{ const s=e.target; const k=[...S.sel];
+    if(s.dataset.b==='move' && s.value) moveLines(k,s.value);
+    if(s.dataset.b==='run' && s.value){ if(s.value==='__new') newRunDialog(k); else addToRun(s.value,k); } };
+}
+
+/* ---------- pay runs ---------- */
+function snapLine(r){ return {k:r.k,vid:r.vid,vn:r.vn,pid:r.pid,cc:r.cc,doc:r.doc,ln:r.ln,idate:r.idate,tot:r.tot,b:r.b,ds:r.ds,loc:r.loc,acct:r.acct,ct:r.ct,amt:r.amt,paid:r.paid,wc:r.wc,ed:r.ed}; }
+function newRunDialog(keys){
+  if(!S.canWrite){ toast('You have view access only.'); return; }
+  const n=S.runs.reduce((m,r)=>Math.max(m,(r.name.match(/PAY\s*(\d+)/i)||[])[1]|0),0)+1;
+  const d=$('#dlg');
+  d.innerHTML=`<h3>New pay run</h3><p class="note">${keys&&keys.length?`${fmtN(keys.length)} selected lines will be added.`:'Add lines from any tab after you create it.'}</p>
+    <label class="f">Name<input id="rnName" value="PAY${n} ${fmtD(todayISO())}"></label>
+    <label class="f">Pay date<input id="rnDate" type="date" value="${todayISO()}"></label>
+    <div class="acts"><button class="btn" value="cancel" id="rnCancel">Cancel</button><button class="btn primary" id="rnOk">Create pay run</button></div>`;
+  d.showModal();
+  $('#rnCancel').onclick=()=>{ d.close(); renderBulk(); };
+  $('#rnOk').onclick=async()=>{
+    const run={id:'run'+Date.now().toString(36),name:$('#rnName').value.trim()||`PAY${n}`,date:$('#rnDate').value,status:'draft',createdAt:new Date().toISOString(),lines:[]};
+    if(S.uid) run.u=S.uid;
+    d.close(); S.runs.unshift(run);
+    if(keys&&keys.length) await addToRun(run.id,keys); else { await saveRun(run); S.activeRun=run.id; go({type:'runs'}); }
+  };
+}
+async function addToRun(id,keys){
+  const run=S.runs.find(r=>r.id===id); if(!run) return;
+  // a line can sit in only one open run
+  const moved=new Set(keys);
+  for(const other of S.runs) if(other!==run && other.status!=='released'){ const before=other.lines.length; other.lines=other.lines.filter(l=>!moved.has(l.k)); if(other.lines.length!==before) saveRun(other); }
+  const have=new Set(run.lines.map(l=>l.k)); let n=0;
+  for(const k of keys){ const r=S.byKey.get(k); if(r && !have.has(k)){ run.lines.push(snapLine(r)); n++; } }
+  await saveRun(run); derive(); S.sel.clear(); renderNav(); if(gridCtx) refreshGrid();
+  toast(`${fmtN(n)} line${n===1?'':'s'} added to ${run.name}`);
+}
+function removeFromRuns(keys){
+  const ks=new Set(keys);
+  for(const run of S.runs) if(run.status!=='released'){ const b=run.lines.length; run.lines=run.lines.filter(l=>!ks.has(l.k)); if(run.lines.length!==b) saveRun(run); }
+  derive(); S.sel.clear(); renderNav(); if(gridCtx) refreshGrid(); toast('Removed from pay run');
+}
+function renderRuns(){
+  gridCtx=null;
+  const main=$('#main');
+  if(!S.activeRun || !S.runs.find(r=>r.id===S.activeRun)) S.activeRun=S.runs[0]?.id||null;
+  const run=S.runs.find(r=>r.id===S.activeRun);
+  const list=S.runs.map(r=>{ const t=r.lines.reduce((s,l)=>s+(+l.tot||0),0); return `<button class="runcard ${r.status==='released'?'released':''}" data-run="${esc(r.id)}" aria-current="${r.id===S.activeRun}"><div class="r1"><span>${esc(r.name)}</span><span class="num">${fmtK(t)}</span></div><div class="r2"><span>${r.status==='released'?'Released':'Open'}, ${esc(longD(r.date))}</span><span>${fmtN(r.lines.length)} lines</span></div></button>`; }).join('');
+  let detail='';
+  if(run){
+    const rel=run.status==='released';
+    const byV=groupBy([...run.lines].sort((a,b)=>a.vn.localeCompare(b.vn)||a.doc.localeCompare(b.doc)),l=>l.vn);
+    const tot=run.lines.reduce((s,l)=>s+(+l.tot||0),0);
+    const gone=run.lines.filter(l=>!S.byKey.has(l.k)).length;
+    let rows='';
+    for(const [v,ls] of byV){ const vt=ls.reduce((s,l)=>s+(+l.tot||0),0);
+      rows+=`<tr class="vh"><td colspan="5">${esc(v)} <span class="note" style="font-weight:400">${ls.length} line${ls.length===1?'':'s'}</span></td><td class="num">${fmt$(vt)}</td><td></td></tr>`;
+      for(const l of ls){ const live=S.byKey.get(l.k);
+        rows+=`<tr class="${live?'':'gone'}"><td class="cond">${esc(l.pid)}</td><td class="cond">${esc(l.doc)}</td><td>${fmtD(l.idate)}</td><td>${esc(BMAP[l.b]?.name||'')}</td><td>${live?(Math.abs(live.tot-l.tot)>.005?`<span class="pill" title="Open balance in Sage is now ${fmt$(live.tot)}">Balance changed</span>`:''):'<span class="pill good" title="No longer open in the latest Sage export">Cleared in Sage</span>'}</td><td class="num">${fmt$(+l.tot||0)}</td><td>${rel?'':`<button class="btn sm ghost" data-unline="${esc(l.k)}" aria-label="Remove line">Remove</button>`}</td></tr>`; }
+    }
+    detail=`<div class="rundetail ${rel?'released':''}">
+      <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px"><input class="rn" id="runName" value="${esc(run.name)}" ${rel?'disabled':''} aria-label="Pay run name">
+        <div class="note">Pay date <input type="date" id="runDate" value="${esc(run.date)}" ${rel?'disabled':''} style="border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:2px 5px"> ${rel?`<span class="pill good">Released ${esc(longD((run.releasedAt||'').slice(0,10)))}</span>`:''}</div></div>
+        <div style="text-align:right"><div style="font:600 26px/1 'IBM Plex Sans Condensed',sans-serif" class="num">${fmt$(tot)}</div><div class="note">${fmtN(run.lines.length)} line${run.lines.length===1?'':'s'}, ${fmtN(byV.size)} vendor${byV.size===1?'':'s'}${gone?`, ${gone} cleared in Sage`:''}</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        ${rel?`<button class="btn" id="runReopen">Reopen</button>`:`<button class="btn good" id="runRelease" ${run.lines.length?'':'disabled'}>Mark released</button><button class="btn danger" id="runDelete">Delete pay run</button>`}
+      </div>
+      ${run.lines.length?`<div class="tablewrap"><table class="lines"><thead><tr><th>Project</th><th>Invoice</th><th>Inv. date</th><th>From tab</th><th>Status</th><th class="num">Amount</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="empty-state" style="padding:30px 0">Select lines on any tab and choose <b>Add to pay run</b>.</p>`}
+    </div>`;
+  }
+  main.innerHTML=`<div class="pane"><h1>Pay runs</h1><p class="lede">Build each payment batch from any tab. Mark it released once checks and releases are out the door; released runs stay green as a record of money spent.</p>
+    <div class="runs"><div class="runlist"><button class="btn primary" id="newRun">New pay run</button>${list||'<p class="note">No pay runs yet.</p>'}</div><div>${detail||'<div class="rundetail"><p class="note">Create a pay run to start.</p></div>'}</div></div></div>`;
+  main.onclick=async e=>{
+    const rc=e.target.closest('[data-run]'); if(rc){ S.activeRun=rc.dataset.run; renderRuns(); return; }
+    if(e.target.id==='newRun'){ newRunDialog([]); return; }
+    if(!run) return;
+    if(!S.canWrite && e.target.closest('button')){ toast('You have view access only.'); return; }
+    const ul=e.target.closest('[data-unline]'); if(ul){ run.lines=run.lines.filter(l=>l.k!==ul.dataset.unline); await saveRun(run); derive(); renderAll(); return; }
+    if(e.target.id==='runRelease'){ run.status='released'; run.releasedAt=new Date().toISOString(); await saveRun(run); derive(); renderAll(); toast(`${run.name} marked released`); }
+    if(e.target.id==='runReopen'){ run.status='draft'; delete run.releasedAt; await saveRun(run); derive(); renderAll(); }
+    if(e.target.id==='runDelete'){ if(!confirm(`Delete ${run.name}? The lines stay on their tabs.`)) return; S.runs=S.runs.filter(r=>r!==run); await deleteRun(run.id); derive(); renderAll(); }
+  };
+  main.onchange=async e=>{ if(!run) return; if(e.target.id==='runName'){ run.name=e.target.value.trim()||run.name; await saveRun(run); renderNav(); renderRuns(); } if(e.target.id==='runDate'){ run.date=e.target.value; await saveRun(run); renderRuns(); } };
+}
+
+/* ---------- rules ---------- */
+function draft(){ return S.rulesDraft ||= {rules:structuredClone(S.rules),labels:{...S.issueLabels}}; }
+function renderRules(){
+  gridCtx=null;
+  const D=draft(); const main=$('#main');
+  const bopts=sel=>BUCKETS.map(b=>`<option value="${b.id}" ${b.id===sel?'selected':''}>${esc(b.name)}</option>`).join('');
+  const fopts=sel=>FIELDS.map(([f,l])=>`<option value="${f}" ${f===sel?'selected':''}>${esc(l)}</option>`).join('');
+  const oopts=sel=>OPS.map(([o,l])=>`<option value="${o}" ${o===sel?'selected':''}>${esc(l)}</option>`).join('');
+  const cards=D.rules.map((r,i)=>`<div class="rule ${r.on===false?'off':''}" data-i="${i}">
+    <div class="ord">${i+1}</div>
+    <div>
+      <div class="top1"><input class="name" data-f="name" value="${esc(r.name)}" aria-label="Rule name"><span class="note">sends to</span><select class="s" data-f="to" aria-label="Destination tab">${bopts(r.to)}</select></div>
+      <div class="conds">${(r.all||[]).map((c,j)=>`${j?'<div class="and">and</div>':''}<div class="cond-row" data-j="${j}"><select class="s" data-c="f" aria-label="Field">${fopts(c.f)}</select><select class="s" data-c="op" aria-label="Condition">${oopts(c.op)}</select><textarea data-c="v" rows="${Math.min(6,Math.max(1,c.v.length))}" aria-label="Values, one per line">${esc((c.v||[]).join('\n'))}</textarea><button class="iconbtn" data-act="delc" title="Remove condition" aria-label="Remove condition">×</button></div>`).join('')}
+        <div><button class="btn sm ghost" data-act="addc">Add condition</button></div></div>
+    </div>
+    <div class="side">
+      <div class="hit" data-hit="${esc(r.id)}"></div>
+      <label class="chk"><input type="checkbox" data-f="on" ${r.on!==false?'checked':''}> Active</label>
+      <div style="display:flex;gap:4px"><button class="iconbtn" data-act="up" title="Move up" aria-label="Move up">↑</button><button class="iconbtn" data-act="down" title="Move down" aria-label="Move down">↓</button><button class="iconbtn" data-act="del" title="Delete rule" aria-label="Delete rule">🗑</button></div>
+    </div></div>`).join('');
+  const labels=Object.entries(D.labels).map(([k,v])=>`${k} = ${v}`).join('\n');
+  main.innerHTML=`<div class="pane">
+    <h1>Sorting rules</h1>
+    <p class="lede">Every line from the Sage export is checked against these rules from the top down. The first rule that matches decides its tab; lines that match nothing go to Aging. A manual move on a line always wins over the rules and carries forward to the next import. Values are matched without regard to capitals; put one value per line.</p>
+    <div class="stickybar"><button class="btn primary" id="saveRules" ${S.rulesDirty?'':'disabled'}>Save rules</button><button class="btn" id="discardRules" ${S.rulesDirty?'':'disabled'}>Discard changes</button><button class="btn" id="addRule">Add rule</button><span class="dirty">${S.rulesDirty?'Unsaved changes. The tabs already show their effect.':''}</span></div>
+    <div id="rulelist">${cards}</div>
+    <h2>Aging-issues job names</h2>
+    <p class="note" style="margin-top:-4px">How each job is labelled on the Summary and in the Aging issues tab. One per line: project code = label.</p>
+    <textarea id="labels" rows="5" style="width:100%;max-width:640px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font-family:'IBM Plex Sans Condensed',sans-serif">${esc(labels)}</textarea>
+  </div>`;
+  updateRuleHits();
+  const markDirty=()=>{ S.rulesDirty=true; S.rules_preview(); };
+  main.oninput=e=>{
+    const card=e.target.closest('.rule'); 
+    if(e.target.id==='labels'){ const m={}; e.target.value.split('\n').forEach(l=>{ const [a,...b]=l.split('='); if(a&&a.trim()&&b.length) m[a.trim()]=b.join('=').trim(); }); D.labels=m; markDirty(); return; }
+    if(!card) return; const r=D.rules[+card.dataset.i];
+    if(e.target.dataset.f==='name'){ r.name=e.target.value; markDirty(); }
+    if(e.target.dataset.c==='v'){ const j=+e.target.closest('.cond-row').dataset.j; r.all[j].v=e.target.value.split('\n').map(s=>s.trim()).filter(Boolean); markDirty(); }
+  };
+  main.onchange=e=>{
+    const card=e.target.closest('.rule'); if(!card) return; const r=D.rules[+card.dataset.i];
+    if(e.target.dataset.f==='to'){ r.to=e.target.value; markDirty(); }
+    if(e.target.dataset.f==='on'){ r.on=e.target.checked; card.classList.toggle('off',!r.on); markDirty(); }
+    if(e.target.dataset.c==='f'||e.target.dataset.c==='op'){ const j=+e.target.closest('.cond-row').dataset.j; r.all[j][e.target.dataset.c]=e.target.value; markDirty(); }
+  };
+  main.onclick=async e=>{
+    if(e.target.id==='saveRules') return saveRules();
+    if(e.target.id==='discardRules'){ S.rulesDraft=null; S.rulesDirty=false; derive(); renderAll(); return; }
+    if(e.target.id==='addRule'){ D.rules.push({id:'r'+Date.now().toString(36),name:'New rule',to:'SGA',on:true,all:[{f:'vn',op:'contains',v:[]}]}); S.rulesDirty=true; renderRules(); S.rules_preview(); $('#rulelist').lastElementChild.scrollIntoView({block:'center'}); return; }
+    const a=e.target.closest('[data-act]'); if(!a) return; const card=a.closest('.rule'); const i=+card.dataset.i; const r=D.rules[i];
+    const act=a.dataset.act;
+    if(act==='up'&&i>0){ [D.rules[i-1],D.rules[i]]=[D.rules[i],D.rules[i-1]]; }
+    else if(act==='down'&&i<D.rules.length-1){ [D.rules[i+1],D.rules[i]]=[D.rules[i],D.rules[i+1]]; }
+    else if(act==='del'){ if(!confirm(`Delete the rule “${r.name}”?`)) return; D.rules.splice(i,1); }
+    else if(act==='addc'){ r.all.push({f:'vn',op:'contains',v:[]}); }
+    else if(act==='delc'){ r.all.splice(+a.closest('.cond-row').dataset.j,1); }
+    else return;
+    S.rulesDirty=true; S.rules_preview(); renderRules();
+  };
+}
+// live preview: the derive() wrapper applies the draft while it is dirty
+S.rules_preview=()=>{
+  derive(); renderNav(); updateRuleHits();
+  const sb=$('#saveRules'); if(sb){ sb.disabled=false; $('#discardRules').disabled=false; $('.dirty').textContent='Unsaved changes. The tabs already show their effect.'; }
+};
+function updateRuleHits(){
+  document.querySelectorAll('[data-hit]').forEach(el=>{ const h=S.ruleHits?.[el.dataset.hit]; el.innerHTML=h?`<b>${fmtN(h.n)}</b> line${h.n===1?'':'s'}<br>${fmt$(h.t,0)}`:'No matches'; });
+}
+async function saveRules(){
+  const D=S.rulesDraft; if(!D) return;
+  for(const r of D.rules){ r.all=(r.all||[]).filter(c=>c.v&&c.v.length); }
+  S.rules=structuredClone(D.rules); S.issueLabels={...D.labels}; S.rulesDirty=false; S.rulesDraft=null; derive(); renderAll();
+  setSave('Saving…');
+  try{
+    await gql(`mutation($r:String!,$l:String!,$u:String){ ${F.names.saveRules}(rules_json:$r, labels_json:$l, app_user:$u){ rule_set_id } }`,
+              {r:JSON.stringify(S.rules), l:JSON.stringify(S.issueLabels), u:S.uid});
+    setSave('All changes saved'); toast('Rules saved');
+  }catch(e){ console.error(e); setSave('Rules not saved',true); toast('Could not save rules: '+e.message.slice(0,100)); }
+}
+// keep draft effect when other renders call derive()
+const _derive=derive;
+
+/* ---------- export ---------- */
+async function exportWorkbook(){
+  if(typeof XLSX==='undefined'){ toast('The spreadsheet writer did not load.'); return; }
+  if(!S.rows.length){ toast('Nothing to export yet.'); return; }
+  const HDR=['Vendor ID','Vendor name','Description','Location Name','Expense Account','Project ID','Cost Code','Cost type','Line no.','Invoice','Invoice Date','Amount','Amount paid','Current','Over 30 Days','Over 60 Days','Over 90 days','Over 120 Days','Total','When created','Entry date','Comment','Sorted by','Pay run'];
+  const dt=iso=>iso?new Date(iso+'T00:00:00'):null;
+  const line=r=>{ const a=[0,0,0,0,0]; a[r.ab]=r.tot; return [r.vid,r.vn,r.ds,r.loc,r.acct,r.pid,r.cc,r.ct,r.ln,r.doc,dt(r.idate),r.amt,r.paid,...a,r.tot,dt(r.wc),dt(r.ed),r.cmt,r.man?'Manual change':r.ruleName,r.run?r.run.name:'']; };
+  const wb=XLSX.utils.book_new();
+  const sumCols=c=>`${c}`;
+  function sheet(name,rs,groupFn,labelFn){
+    const aoa=[[],HDR]; const subRows=[];
+    if(groupFn){ const g=groupBy(rs,groupFn); for(const [k,arr] of [...g.entries()].sort()){ aoa.push([null,labelFn(k)]); const s=aoa.length; arr.forEach(r=>aoa.push(line(r))); subRows.push([s,aoa.length]); aoa.push([]); } }
+    else rs.forEach(r=>aoa.push(line(r)));
+    const ws=XLSX.utils.aoa_to_sheet(aoa,{cellDates:true});
+    const last=Math.max(3,aoa.length);
+    ['L','M','N','O','P','Q','R','S'].forEach(col=>{ ws[col+'1']={t:'n',f:`SUBTOTAL(9,${col}3:${col}${last})`}; });
+    ws['A1']={t:'s',v:`${name} as of ${fmtD(S.asOf)}`};
+    for(let i=2;i<aoa.length;i++){ const cc=ws[XLSX.utils.encode_cell({r:i,c:6})]; if(cc) cc.t='s';
+      [10,19,20].forEach(c=>{ const x=ws[XLSX.utils.encode_cell({r:i,c})]; if(x&&x.t==='d') x.z='mm/dd/yyyy'; });
+      [11,12,13,14,15,16,17,18].forEach(c=>{ const x=ws[XLSX.utils.encode_cell({r:i,c})]; if(x&&x.t==='n') x.z='#,##0.00'; }); }
+    ws['!autofilter']={ref:`A2:X${last}`}; ws['!freeze']={xSplit:0,ySplit:2};
+    ws['!cols']=[10,30,28,26,9,16,10,6,5,18,11,12,12,12,12,12,12,12,13,11,11,30,30,16].map(w=>({wch:w}));
+    XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31));
+  }
+  // summary
+  const order=['AGING','ISSUES','DF','SL','CANYONS','ATELIER','DEV','SGA','RET'];
+  const sa=[['BLUE HERON ACCOUNTS PAYABLE AGING'],[`AS OF ${fmtD(S.asOf)}`],[],['Tab','Lines','Current','Over 30 Days','Over 60 Days','Over 90 Days','Over 120 Days','Total','In open pay runs','Released']];
+  const T=totals(S.rows.filter(r=>r.b!=='REMOVED'));
+  for(const id of order){ const rs=rowsIn(id); const t=totals(rs); sa.push([BMAP[id].name.toUpperCase(),t.n,...t.a,t.tot,t.sched,t.rel]);
+    if(id==='ISSUES') for(const [k,arr] of [...groupBy(rs,issueKey).entries()].sort()){ const tt=totals(arr); sa.push(['   '+issueLabel(k),tt.n,...tt.a,tt.tot,tt.sched,tt.rel]); } }
+  sa.push(['TOTAL AGING',T.n,...T.a,T.tot,T.sched,T.rel]); sa.push([]);
+  const tr=totals(rowsIn('REMOVED')); sa.push(['REMOVED (NOT IN AGING)',tr.n,...tr.a,tr.tot]);
+  for(const row of sa) for(let i=0;i<row.length;i++) if(typeof row[i]==='number') row[i]=Math.round(row[i]*100)/100;
+  const ws=XLSX.utils.aoa_to_sheet(sa); ws['!cols']=[{wch:34},{wch:8},...Array(8).fill({wch:15})];
+  for(let i=4;i<sa.length;i++) for(let c=2;c<10;c++){ const x=ws[XLSX.utils.encode_cell({r:i,c})]; if(x&&x.t==='n') x.z='#,##0.00'; }
+  XLSX.utils.book_append_sheet(wb,ws,'SUMMARY');
+  for(const b of BUCKETS){ const rs=rowsIn(b.id).sort((a,c)=>a.vn.localeCompare(c.vn)||a.idate.localeCompare(c.idate));
+    if(b.id==='ISSUES') sheet(b.sheet,rs,issueKey,k=>issueLabel(k).toUpperCase()); else sheet(b.sheet,rs); }
+  const used=new Set(wb.SheetNames);
+  for(const run of [...S.runs].reverse()){
+    let nm=(run.name||'PAY').replace(/[\\\/\?\*\[\]:]/g,'.').slice(0,28)+(run.status==='released'?' ✓':''); while(used.has(nm)) nm=nm.slice(0,27)+'_'; used.add(nm);
+    const rs=run.lines.map(l=>{ const live=S.byKey.get(l.k); return live||{...l,ab:0,cmt:'',man:false,ruleName:'Cleared in Sage',run}; });
+    sheet(nm,rs);
+  }
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellDates:true});
+  const fn=`${(S.asOf||todayISO()).replace(/-/g,'').slice(0,6)}_AP_WORKBOOK.xlsx`;
+  const blob=new Blob([out]);
+  if(S.downloads){ try{ await S.downloads.save({filename:fn,data:blob}); toast('Workbook saved'); }catch(e){ if(e.code!=='declined') toast('Could not save the workbook: '+(e.message||e.code)); } }
+  else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+}
+
+/* ---------- go ---------- */
+// While a rules draft is open, every recompute should reflect it.
+derive = function(){ if(S.rulesDraft && S.rulesDirty){ const k=S.rules,l=S.issueLabels; S.rules=S.rulesDraft.rules; S.issueLabels=S.rulesDraft.labels; _derive(); S.rules=k; S.issueLabels=l; } else _derive(); };
+boot();
+</script>
+</body>
+</html>
