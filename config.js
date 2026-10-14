@@ -1,7 +1,7 @@
 /* AP Workbench settings. Fill in the three IDs; the rest has working defaults. */
 window.AP_CONFIG = {
-  tenantId:        "",   // Entra ID > Overview > Tenant ID
-  clientId:        "",   // the app registration's Application (client) ID
+  tenantId:        "7163abb0-3c0a-412b-b0c8-c9fdda5b1d3b",   // Entra ID > Overview > Tenant ID
+  clientId:        "7269d452-36d7-4686-be65-d343c65ad02b",   // the app registration's Application (client) ID
   graphqlEndpoint: "",   // Fabric > your API for GraphQL item > "Copy endpoint"
 
   scopes: ["https://analysis.windows.net/powerbi/api/GraphQLApi.Execute.All"],
